@@ -496,7 +496,7 @@ function registrarListenerDeAtendimento(sock) {
           if (leadAtual?.pesquisa_pendente) {
             const respostaLimpa = textoRecebido.trim();
             if (respostaLimpa === "1" || respostaLimpa === "2") {
-              db.registrarMensagem(numeroCliente, "cliente", textoRecebido, msg.pushName || null, numeroParaEnviar);
+              db.registrarMensagem(numeroCliente, "cliente", textoRecebido, msg.pushName || null, numeroParaEnviar, null, true);
 
               const resultado = respostaLimpa === "1" ? "resolvido" : "nao_resolvido";
               db.registrarRespostaPesquisa(numeroCliente, resultado);

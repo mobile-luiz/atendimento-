@@ -129,7 +129,7 @@ function prepararIntervaloPeriodo(desde, ate) {
  * quando informado, guarda o nome de quem mandou a mensagem manualmente
  * (recepção pelo painel ou alguém digitando direto no WhatsApp).
  */
-function registrarMensagem(numero, remetente, texto, nome = null, jidEnvio = null, atendente = null) {
+function registrarMensagem(numero, remetente, texto, nome = null, jidEnvio = null, atendente = null, manterFinalizada = false) {
   const agora = new Date().toISOString();
 
   const leadExistente = db.prepare("SELECT numero FROM leads WHERE numero = ?").get(numero);
@@ -145,8 +145,12 @@ function registrarMensagem(numero, remetente, texto, nome = null, jidEnvio = nul
 
     // Se o cliente escreveu de novo numa conversa que já tinha sido
     // finalizada, reabre automaticamente — senão a mensagem nova passaria
-    // despercebida numa conversa "fechada".
-    if (remetente === "cliente") {
+    // despercebida numa conversa "fechada". Exceção: a resposta da própria
+    // pesquisa de satisfação (manterFinalizada=true) não conta como "voltou
+    // a conversar" — sem essa exceção, responder a pesquisa já reabria a
+    // conversa sozinha, fazendo o sistema achar que ela nunca tinha sido
+    // finalizada quando o cliente mandava uma mensagem de verdade depois.
+    if (remetente === "cliente" && !manterFinalizada) {
       db.prepare(`UPDATE leads SET finalizada = 0 WHERE numero = ?`).run(numero);
     }
   } else {
