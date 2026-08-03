@@ -1,0 +1,21 @@
+{
+  "name": "ia-atendimento-pad-bot",
+  "version": "1.0.0",
+  "description": "Bot WhatsApp independente (Baileys) para IA de atendimento da PAD Saúde Caruaru",
+  "main": "bot.js",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.0",
+    "@whiskeysockets/baileys": "6.7.22",
+    "node-cache": "^5.1.2",
+    "qrcode-terminal": "^0.12.0",
+    "pino": "^9.5.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.1"
+  }
+}

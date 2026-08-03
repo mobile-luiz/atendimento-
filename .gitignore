@@ -1,0 +1,17 @@
+node_modules/
+
+# Sessão do WhatsApp (Baileys) — NUNCA subir isso pro GitHub.
+# Quem tiver acesso a essa pasta consegue se passar pelo seu número de WhatsApp.
+auth_info_baileys/
+
+# Chave de API e outros segredos.
+.env
+
+# Banco de dados local — tem dados reais de pacientes/leads.
+atendimento.db
+atendimento.db-shm
+atendimento.db-wal
+
+# Logs e arquivos de sistema
+npm-debug.log*
+.DS_Store
