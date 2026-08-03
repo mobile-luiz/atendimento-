@@ -575,15 +575,25 @@ function registrarListenerDeAtendimento(sock) {
             limparHistorico(numeroCliente);
             db.marcarEncaminhadoHumano(numeroCliente);
             if (motivoTransferencia) db.definirMotivoTransferencia(numeroCliente, motivoTransferencia);
+            if (!leadAtual) {
+              console.log(`ℹ️  [MENU] Não enviado — primeira mensagem já foi encaminhada direto pra humano.`);
+            }
             // TODO (opcional): notificar um número/grupo interno aqui, ex:
             // await sock.sendMessage("SEU_NUMERO@s.whatsapp.net", { text: `Cliente ${numeroCliente} precisa de atendimento humano.` });
-          } else if (!leadAtual) {
-            // Primeira mensagem dessa pessoa e a IA não encaminhou pra
-            // humano — manda o menu numérico (1-4) logo depois da saudação.
+          } else if (!leadAtual || leadAtual?.finalizada) {
+            // Manda o menu numérico (1-4) quando: (a) é a primeira mensagem
+            // dessa pessoa, ou (b) a conversa dela já tinha sido finalizada
+            // antes e essa mensagem a reabriu — pro cliente, reiniciar uma
+            // conversa encerrada deve se sentir como começar do zero de novo.
+            if (leadAtual?.finalizada) {
+              console.log(`🔁 [MENU] Conversa com ${numeroCliente} estava finalizada e foi reaberta — reenviando menu.`);
+            }
             await menuFluxo.enviarMenuPrincipal(sock, numeroParaEnviar, numeroCliente, {
               marcarComoEnviadoPeloSistema,
               guardarParaRetry,
             });
+          } else {
+            console.log(`ℹ️  [MENU] Não enviado — ${numeroCliente} já tinha conversa registrada antes (não é lead novo).`);
           }
         } catch (erro) {
           console.error("Erro ao processar mensagem do cliente:", erro);
