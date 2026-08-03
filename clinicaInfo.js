@@ -3,7 +3,7 @@
 // Isso é o que a IA usa como fonte de verdade para responder aos clientes.
 
 module.exports = {
-  nomeClinica: "Cartão PAD Saúde+ Caruaru",
+  nomeClinica: "Clínica PAD Saúde Caruaru",
   cidade: "Caruaru, PE",
   endereco: "R. Nossa Sra. de Fátima, 78 - Maurício de Nassau, Caruaru - PE, 55012-600",
   horarioFuncionamento: "Segunda a sexta, 08h às 17h; Sábado, 07h às 12h",
