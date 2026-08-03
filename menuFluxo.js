@@ -35,7 +35,7 @@ const MENU_PRINCIPAL = `Como posso te ajudar? Escolha uma opção digitando o n�
 
 const TEXTO_MODALIDADE_CARTAO = `💳 *Cartão PAD Saúde+*
 
-Pra qual modalidade você quer ver os planos?
+Pra qual modalidade você quer ver os preços?
 
 1️⃣ Pessoa Física — para você
 2️⃣ Família — para sua família
