@@ -442,16 +442,21 @@ function registrarListenerDeAtendimento(sock) {
               // cliente (não no chat "Você"). Diferente do chat "Você", essa
               // mensagem já foi entregue pro celular do cliente antes do bot
               // conseguir reagir — por isso, em vez de tratá-la como uma
-              // resposta normal, apagamos ela (revoke/"apagar para todos") e
-              // mandamos a pesquisa de satisfação no lugar. Se o WhatsApp não
-              // deixar apagar (passou do prazo, ou o cliente já tinha lido),
-              // a pesquisa é enviada do mesmo jeito — só o "#finalizar" pode
-              // ficar visível pro cliente por um instante nesse caso raro.
+              // resposta normal, EDITAMOS ela pra "#finalizada" (em vez de
+              // apagar, que deixaria o aviso "mensagem apagada" visível pro
+              // cliente) e mandamos a pesquisa de satisfação em seguida. Se o
+              // WhatsApp não deixar editar (passou do prazo, ou o cliente já
+              // tinha lido), a pesquisa é enviada do mesmo jeito — só o
+              // "#finalizar" original pode ficar visível pro cliente nesse
+              // caso raro.
               if (/^#finalizar$/i.test(textoHumano.trim())) {
                 try {
-                  await sock.sendMessage(msg.key.remoteJid, { delete: msg.key });
-                } catch (erroApagar) {
-                  console.error("Não consegui apagar o '#finalizar' digitado na conversa:", erroApagar);
+                  await sock.sendMessage(msg.key.remoteJid, {
+                    text: "#finalizada",
+                    edit: msg.key,
+                  });
+                } catch (erroEditar) {
+                  console.error("Não consegui editar o '#finalizar' digitado na conversa:", erroEditar);
                 }
                 await finalizarConversaEEnviarPesquisa(sock, numeroCliente);
                 continue;
