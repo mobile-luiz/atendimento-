@@ -31,7 +31,17 @@ const MENU_PRINCIPAL = `Como posso te ajudar? Escolha uma opção digitando o n�
 1️⃣ Clínica PAD Saúde Caruaru
 2️⃣ Cartão PAD Saúde+
 3️⃣ Nossos serviços
-4️⃣ Sobre a PAD Saúde`;
+4️⃣ Sobre a PAD Saúde
+5️⃣ Falar com o atendente`;
+
+const TEXTO_ATENDENTE_MODALIDADE = `🧑‍💼 *Falar com o atendente*
+
+Com qual recepção você quer falar?
+
+1️⃣ Recepção da Clínica PAD Saúde Caruaru
+2️⃣ Recepção do Cartão PAD Saúde+
+
+0️⃣ Voltar ao menu principal`;
 
 const TEXTO_MODALIDADE_CARTAO = `💳 *Cartão PAD Saúde+*
 
@@ -149,6 +159,8 @@ const AVISO_TRANSFERENCIA_5_VIDAS =
   "Pra grupos de 5 vidas ou mais, os valores são combinados direto com um atendente. Vou te transferir agora!";
 const AVISO_TRANSFERENCIA_PJ_FATURA =
   "Pra modalidade PJ Fatura, um atendente vai te passar as condições certinhas. Vou te transferir agora!";
+const AVISO_TRANSFERENCIA_RECEPCAO_CARTAO =
+  "Vou te transferir para um atendente da recepção do Cartão PAD Saúde+. Só um instante! 😊";
 
 // ---------------------------------------------------------------------
 // Envio / registro
@@ -207,6 +219,27 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
     if (opcao === "4") {
       await enviarTexto(sock, destino, numeroCliente, TEXTO_NOSSA_HISTORIA, ctx);
       // permanece no menu principal — a pessoa pode digitar outra opção
+      return true;
+    }
+    if (opcao === "5") {
+      await enviarTexto(sock, destino, numeroCliente, TEXTO_ATENDENTE_MODALIDADE, ctx);
+      definirEstado(numeroCliente, "ATENDENTE_MODALIDADE");
+      return true;
+    }
+    return false;
+  }
+
+  if (estadoAtual === "ATENDENTE_MODALIDADE") {
+    if (opcao === "1") {
+      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_CLINICA, "GERAL", ctx);
+      return true;
+    }
+    if (opcao === "2") {
+      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_RECEPCAO_CARTAO, "GERAL", ctx);
+      return true;
+    }
+    if (opcao === "0") {
+      await enviarMenuPrincipal(sock, destino, numeroCliente, ctx);
       return true;
     }
     return false;
