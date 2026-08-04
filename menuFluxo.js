@@ -57,26 +57,26 @@ const TEXTO_EMPRESA_TIPO = `Qual modalidade empresarial?
 
 0️⃣ Voltar ao menu principal`;
 
-const RODAPE_PLANOS = `\n\nDigite 1, 2 ou 3 pra solicitar o plano Inicial, Essencial ou Confort com um atendente, ou 0 pra voltar ao menu principal.`;
+const RODAPE_PLANOS = `\n\nDigite 1, 2 ou 3 pra solicitar o Inicial, Essencial ou Confort com um atendente, ou 0 pra voltar ao menu principal.`;
 
 const TEXTO_PLANOS_PESSOA_FISICA = `👤 *Pessoa Física — Para você*
 Contratação individual, valor mensal fixo para uma pessoa.
 
-*Plano Inicial — R$ 25,00/mês*
+*Inicial — R$ 25,00/mês*
 O primeiro passo pra cuidar da saúde com previsibilidade e economia, sem pesar no orçamento mensal.
 • Acesso à rede PAD Saúde
 • Descontos exclusivos em consultas e exames
 
-*Plano Essencial — R$ 59,90/mês* (inclui Médico na Tela)
+*Essencial — R$ 59,90/mês* (inclui Médico na Tela)
 Pra quem busca mais benefícios, atendimento online imediato e condições especiais na rede de parceiros.
-• Tudo do plano Inicial
+• Tudo do Inicial
 • Médico na Tela: 3 atendimentos online por mês
 • Rede de Parceiros com descontos especiais
 • Acesso à rede própria de clínicas PAD
 
-*Plano Confort — R$ 89,90/mês*
+*Confort — R$ 89,90/mês*
 A solução mais completa, com cuidado presencial e atendimento no conforto de casa.
-• Tudo do plano Essencial
+• Tudo do Essencial
 • Rede própria de clínicas PAD com tabela diferenciada
 • Médico em Casa: 1 atendimento por mês
 
@@ -85,44 +85,44 @@ _Valores definitivos. A utilização depende da ativação, da disponibilidade r
 const TEXTO_PLANOS_FAMILIA_3A4 = `👨‍👩‍👧 *Família — 3 a 4 vidas*
 Condição familiar para grupos de três ou quatro pessoas, valor mensal calculado por vida.
 
-*Plano Inicial — R$ 22,00/vida/mês*
+*Inicial — R$ 22,00/vida/mês*
 O primeiro passo pra cuidar da saúde com previsibilidade e economia, sem pesar no orçamento mensal.
 • Acesso à rede PAD Saúde
 • Descontos exclusivos em consultas e exames
 
-*Plano Essencial — R$ 45,90/vida/mês* (inclui Médico na Tela)
+*Essencial — R$ 45,90/vida/mês* (inclui Médico na Tela)
 Pra quem busca mais benefícios, atendimento online imediato e condições especiais na rede de parceiros.
-• Tudo do plano Inicial
+• Tudo do Inicial
 • Médico na Tela: 3 atendimentos online por mês
 • Rede de Parceiros com descontos especiais
 • Acesso à rede própria de clínicas PAD
 
-*Plano Confort — R$ 69,90/vida/mês*
+*Confort — R$ 69,90/vida/mês*
 A solução mais completa, com cuidado presencial e atendimento no conforto de casa.
-• Tudo do plano Essencial
+• Tudo do Essencial
 • Rede própria de clínicas PAD com tabela diferenciada
 • Médico em Casa: 1 atendimento por mês
 
-_Valores definitivos, mensais e cobrados por vida — o total mensal é o valor do plano multiplicado pelo número de pessoas incluídas. A utilização depende da ativação, da disponibilidade regional, da rede e das condições previstas no regulamento._${RODAPE_PLANOS}`;
+_Valores definitivos, mensais e cobrados por vida — o total mensal é o valor multiplicado pelo número de pessoas incluídas. A utilização depende da ativação, da disponibilidade regional, da rede e das condições previstas no regulamento._${RODAPE_PLANOS}`;
 
 const TEXTO_PLANOS_EMPRESA_PJ_ADESAO = `🏢 *Empresa — PJ Adesão*
 Valores empresariais da modalidade PJ Adesão, cobrados mensalmente por vida.
 
-*Plano Inicial — R$ 22,00/vida/mês*
+*Inicial — R$ 22,00/vida/mês*
 O primeiro passo pra cuidar da saúde com previsibilidade e economia, sem pesar no orçamento mensal.
 • Acesso à rede PAD Saúde
 • Descontos exclusivos em consultas e exames
 
-*Plano Essencial — R$ 49,90/vida/mês* (inclui Médico na Tela)
+*Essencial — R$ 49,90/vida/mês* (inclui Médico na Tela)
 Pra quem busca mais benefícios, atendimento online imediato e condições especiais na rede de parceiros.
-• Tudo do plano Inicial
+• Tudo do Inicial
 • Médico na Tela: 3 atendimentos online por mês
 • Rede de Parceiros com descontos especiais
 • Acesso à rede própria de clínicas PAD
 
-*Plano Confort — R$ 69,90/vida/mês*
+*Confort — R$ 69,90/vida/mês*
 A solução mais completa, com cuidado presencial e atendimento no conforto de casa.
-• Tudo do plano Essencial
+• Tudo do Essencial
 • Rede própria de clínicas PAD com tabela diferenciada
 • Médico em Casa: 1 atendimento por mês
 
@@ -276,7 +276,7 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
         sock,
         destino,
         numeroCliente,
-        `Perfeito! Vou te transferir para um atendente finalizar a solicitação do plano ${nomesPlano[opcao]}. Só um instante! 😊`,
+        `Perfeito! Vou te transferir para um atendente finalizar a solicitação do ${nomesPlano[opcao]}. Só um instante! 😊`,
         "FINANCEIRO",
         ctx
       );
