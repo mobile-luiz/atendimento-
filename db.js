@@ -133,14 +133,23 @@ try {
  * "coluna >= ? AND coluna < ?". Retorna null se desde/ate não foram informados
  * (nesse caso, quem usa o helper deve tratar como "sem filtro", todo o histórico).
  */
+/**
+ * Recebe "desde"/"ate" como veio da requisição — string "YYYY-MM-DD" (o
+ * caminho normal, vindo do seletor de período) ou, por segurança, um objeto
+ * Date (chamadas antigas) — e devolve sempre o dia de calendário de Caruaru
+ * correspondente, como string "YYYY-MM-DD".
+ */
+function paraDiaLocalRecife(valor) {
+  return typeof valor === "string" ? valor.slice(0, 10) : new Date(valor).toLocaleDateString("sv-SE", { timeZone: "America/Recife" });
+}
+
 function prepararIntervaloPeriodo(desde, ate) {
   if (!desde || !ate) return null;
-  const inicio = new Date(desde);
-  inicio.setHours(0, 0, 0, 0);
-  const fimExclusivo = new Date(ate);
-  fimExclusivo.setHours(0, 0, 0, 0);
-  fimExclusivo.setDate(fimExclusivo.getDate() + 1);
-  return { inicioISO: inicio.toISOString(), fimISO: fimExclusivo.toISOString() };
+  const diaInicio = paraDiaLocalRecife(desde);
+  const diaFimSelecionado = paraDiaLocalRecife(ate); // "ate" é inclusivo
+  const { inicioISO } = obterLimitesDiaRecife(diaInicio);
+  const { inicioISO: fimISO } = obterLimitesDiaRecife(proximoDiaISO(diaFimSelecionado));
+  return { inicioISO, fimISO };
 }
 
 /**
@@ -357,6 +366,50 @@ function obterLimitesHojeRecife() {
   return obterLimitesDiaRecife(hojeLocal);
 }
 
+/** Devolve a data local (Recife) do dia seguinte a `diaISO` ("YYYY-MM-DD"). */
+function proximoDiaISO(diaISO) {
+  const d = new Date(`${diaISO}T12:00:00Z`); // meio-dia UTC evita qualquer risco de virar o dia errado
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Resolve uma lista de dias de calendário de Caruaru (Recife) — usado pelas
+ * funções que bucketizam algo "por dia" (mensagens, evolução de conversas).
+ * Com `desde`/`ate`, usa esse intervalo (ambos inclusivos); senão, usa os
+ * últimos `dias` dias terminando hoje. Devolve também o intervalo UTC
+ * correspondente pronto pra consulta no banco.
+ */
+function resolverIntervaloDiasRecife(dias, desde, ate) {
+  let diaInicio, totalDias;
+
+  if (desde && ate) {
+    diaInicio = paraDiaLocalRecife(desde);
+    const diaFim = paraDiaLocalRecife(ate);
+    const diffMs = new Date(`${diaFim}T12:00:00Z`) - new Date(`${diaInicio}T12:00:00Z`);
+    totalDias = Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)) + 1);
+  } else {
+    const hojeLocal = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Recife" });
+    const d = new Date(`${hojeLocal}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - (dias - 1));
+    diaInicio = d.toISOString().slice(0, 10);
+    totalDias = dias;
+  }
+
+  const listaDias = [];
+  let cursor = diaInicio;
+  for (let i = 0; i < totalDias; i++) {
+    listaDias.push(cursor);
+    cursor = proximoDiaISO(cursor);
+  }
+  // "cursor" agora é o dia seguinte ao último dia do intervalo (limite exclusivo).
+
+  const { inicioISO } = obterLimitesDiaRecife(diaInicio);
+  const { fimISO } = obterLimitesDiaRecife(cursor);
+
+  return { listaDias, inicioISO, fimISO };
+}
+
 /** Estatísticas gerais para os cards do painel. */
 function obterEstatisticas() {
   const totalLeads = db.prepare(`SELECT COUNT(*) AS c FROM leads`).get().c;
@@ -457,13 +510,6 @@ function obterTaxaEncaminhamentoHumano(desde = null, ate = null) {
   return Math.round((humano / total) * 100);
 }
 
-/** Devolve a data local (Recife) do dia seguinte a `diaISO` ("YYYY-MM-DD"). */
-function proximoDiaISO(diaISO) {
-  const d = new Date(`${diaISO}T12:00:00Z`); // meio-dia UTC evita qualquer risco de virar o dia errado
-  d.setUTCDate(d.getUTCDate() + 1);
-  return d.toISOString().slice(0, 10);
-}
-
 /**
  * Volume de mensagens por dia. Sem argumentos, usa os últimos 7 dias (padrão
  * do painel). Se `inicioCustom`/`fimCustom` forem passados (do seletor de
@@ -474,31 +520,10 @@ function proximoDiaISO(diaISO) {
  * cair no dia errado do gráfico, ou tudo ficar empilhado num dia só.
  */
 function obterMensagensPorDia(dias = 7, inicioCustom = null, fimCustom = null) {
-  let diaInicio, totalDias;
-
-  if (inicioCustom && fimCustom) {
-    diaInicio = inicioCustom;
-    const diffMs = new Date(`${fimCustom}T12:00:00Z`) - new Date(`${inicioCustom}T12:00:00Z`);
-    totalDias = Math.max(1, Math.round(diffMs / (24 * 60 * 60 * 1000)) + 1);
-  } else {
-    const hojeLocal = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Recife" });
-    let d = new Date(`${hojeLocal}T12:00:00Z`);
-    d.setUTCDate(d.getUTCDate() - (dias - 1));
-    diaInicio = d.toISOString().slice(0, 10);
-    totalDias = dias;
-  }
+  const { listaDias, inicioISO, fimISO } = resolverIntervaloDiasRecife(dias, inicioCustom, fimCustom);
 
   const contagemPorDia = {};
-  let diaCursor = diaInicio;
-  for (let i = 0; i < totalDias; i++) {
-    contagemPorDia[diaCursor] = 0;
-    diaCursor = proximoDiaISO(diaCursor);
-  }
-  // Depois do loop, diaCursor é o dia seguinte ao último dia do intervalo —
-  // usado como limite exclusivo pra buscar no banco.
-
-  const { inicioISO } = obterLimitesDiaRecife(diaInicio);
-  const { fimISO } = obterLimitesDiaRecife(diaCursor);
+  for (const dia of listaDias) contagemPorDia[dia] = 0;
 
   const linhas = db
     .prepare(`SELECT criado_em FROM mensagens WHERE criado_em >= ? AND criado_em < ?`)
@@ -594,40 +619,20 @@ function obterFunilAtendimento(desde = null, ate = null) {
  * do que aconteceu naquele dia específico, já que o status pode mudar depois.
  */
 function obterEvolucaoConversas(dias = 7, desde = null, ate = null) {
-  let inicio, totalDias;
-
-  if (desde && ate) {
-    inicio = new Date(desde);
-    inicio.setHours(0, 0, 0, 0);
-    const fim = new Date(ate);
-    fim.setHours(0, 0, 0, 0);
-    totalDias = Math.max(1, Math.round((fim - inicio) / (24 * 60 * 60 * 1000)) + 1);
-  } else {
-    inicio = new Date();
-    inicio.setDate(inicio.getDate() - (dias - 1));
-    inicio.setHours(0, 0, 0, 0);
-    totalDias = dias;
-  }
-
-  const fimExclusivo = new Date(inicio);
-  fimExclusivo.setDate(fimExclusivo.getDate() + totalDias);
+  const { listaDias, inicioISO, fimISO } = resolverIntervaloDiasRecife(dias, desde, ate);
 
   const leads = db
     .prepare(`SELECT primeira_mensagem_em, status FROM leads WHERE primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`)
-    .all(inicio.toISOString(), fimExclusivo.toISOString());
+    .all(inicioISO, fimISO);
 
   const porDia = {};
-  for (let i = 0; i < totalDias; i++) {
-    const d = new Date(inicio);
-    d.setDate(d.getDate() + i);
-    porDia[d.toISOString().slice(0, 10)] = { total: 0, resolvidasIA: 0 };
-  }
+  for (const dia of listaDias) porDia[dia] = { total: 0, resolvidasIA: 0 };
 
   for (const lead of leads) {
-    const chave = lead.primeira_mensagem_em.slice(0, 10);
-    if (!(chave in porDia)) continue;
-    porDia[chave].total += 1;
-    if (lead.status !== "encaminhado_humano") porDia[chave].resolvidasIA += 1;
+    const diaLocal = new Date(lead.primeira_mensagem_em).toLocaleDateString("sv-SE", { timeZone: "America/Recife" });
+    if (!(diaLocal in porDia)) continue;
+    porDia[diaLocal].total += 1;
+    if (lead.status !== "encaminhado_humano") porDia[diaLocal].resolvidasIA += 1;
   }
 
   return Object.entries(porDia).map(([dia, valores]) => ({ dia, ...valores }));
