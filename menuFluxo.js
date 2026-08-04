@@ -159,7 +159,7 @@ Ao longo de mais de 10 anos, diferentes formas de atendimento passaram a fazer p
 *Cuidado onde fizer sentido*
 Hoje, conectamos assistência domiciliar, clínicas, telessaúde e benefícios para acompanhar diferentes necessidades.
 
-Digite 1, 2, 3 ou 4 pra ver outra opção do menu.`;
+Digite 1, 2, 3, 4 ou 5 pra ver outra opção do menu.`;
 
 const AVISO_TRANSFERENCIA_CLINICA =
   "Vou te transferir para um atendente da nossa clínica em Caruaru. Só um instante! 😊";
