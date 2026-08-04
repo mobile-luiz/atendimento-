@@ -23,6 +23,16 @@ function definirEstado(numero, estado) {
 }
 
 // ---------------------------------------------------------------------
+// Motivos de transferência p/ humano — usam o mesmo nome da opção do
+// menu que o cliente escolheu, pra aparecer certinho no painel de
+// "Motivos de transferência" (em vez de um "GERAL" genérico).
+// ---------------------------------------------------------------------
+
+const MOTIVO_CLINICA = "Clínica PAD Saúde Caruaru";
+const MOTIVO_CARTAO = "Cartão PAD Saúde+";
+const MOTIVO_SERVICOS = "Nossos serviços";
+
+// ---------------------------------------------------------------------
 // Textos
 // ---------------------------------------------------------------------
 
@@ -204,7 +214,7 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
 
   if (estadoAtual === "PRINCIPAL") {
     if (opcao === "1") {
-      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_CLINICA, "GERAL", ctx);
+      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_CLINICA, MOTIVO_CLINICA, ctx);
       return true;
     }
     if (opcao === "2") {
@@ -213,7 +223,7 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
       return true;
     }
     if (opcao === "3") {
-      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_SERVICOS, "GERAL", ctx);
+      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_SERVICOS, MOTIVO_SERVICOS, ctx);
       return true;
     }
     if (opcao === "4") {
@@ -231,11 +241,11 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
 
   if (estadoAtual === "ATENDENTE_MODALIDADE") {
     if (opcao === "1") {
-      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_CLINICA, "GERAL", ctx);
+      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_CLINICA, MOTIVO_CLINICA, ctx);
       return true;
     }
     if (opcao === "2") {
-      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_RECEPCAO_CARTAO, "GERAL", ctx);
+      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_RECEPCAO_CARTAO, MOTIVO_CARTAO, ctx);
       return true;
     }
     if (opcao === "0") {
@@ -275,7 +285,7 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
       return true;
     }
     if (opcao === "2") {
-      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_5_VIDAS, "FINANCEIRO", ctx);
+      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_5_VIDAS, MOTIVO_CARTAO, ctx);
       return true;
     }
     if (opcao === "0") {
@@ -292,7 +302,7 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
       return true;
     }
     if (opcao === "2") {
-      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_PJ_FATURA, "FINANCEIRO", ctx);
+      await transferirHumano(sock, destino, numeroCliente, AVISO_TRANSFERENCIA_PJ_FATURA, MOTIVO_CARTAO, ctx);
       return true;
     }
     if (opcao === "0") {
@@ -310,7 +320,7 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
         destino,
         numeroCliente,
         `Perfeito! Vou te transferir para um atendente finalizar a solicitação do ${nomesPlano[opcao]}. Só um instante! 😊`,
-        "FINANCEIRO",
+        MOTIVO_CARTAO,
         ctx
       );
       return true;
