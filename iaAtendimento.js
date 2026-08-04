@@ -19,6 +19,23 @@ const MAX_MENSAGENS_HISTORICO = 10;
 
 const CATEGORIAS_VALIDAS = ["AGENDAMENTO", "FINANCEIRO", "CONVENIO", "EXAMES", "URGENCIA", "GERAL", "OUTROS"];
 
+// Quando a IA encaminha pra humano FORA do menu numérico (menuFluxo.js), o
+// motivo salvo (pra aparecer no painel "Motivos de transferência") usa as
+// MESMAS 3 categorias do menu — em vez das 7 categorias de assunto acima —
+// pra tudo ficar agrupado junto num gráfico só. O campo "assunto" continua
+// usando as 7 categorias normalmente (é usado em outro lugar do painel, no
+// gráfico de assuntos da semana e na tabela de conversas recentes).
+const MOTIVO_TRANSFERENCIA_POR_ASSUNTO = {
+  AGENDAMENTO: "Clínica PAD Saúde Caruaru",
+  CONVENIO: "Clínica PAD Saúde Caruaru",
+  EXAMES: "Clínica PAD Saúde Caruaru",
+  URGENCIA: "Clínica PAD Saúde Caruaru",
+  GERAL: "Clínica PAD Saúde Caruaru",
+  FINANCEIRO: "Cartão PAD Saúde+",
+  OUTROS: "Nossos serviços",
+};
+const MOTIVO_TRANSFERENCIA_PADRAO = "Nossos serviços";
+
 function montarSystemPrompt({ pedirNome, pedirCidade, primeiraMensagem }) {
   let pedidoIdentificacao = "";
   if (pedirNome || pedirCidade) {
@@ -120,10 +137,13 @@ async function gerarResposta(numeroTelefone, mensagemCliente, contexto = {}) {
   if (matchAssunto && CATEGORIAS_VALIDAS.includes(matchAssunto[1])) {
     assunto = matchAssunto[1];
   }
-  // Se está encaminhando, o motivo da transferência é o próprio assunto —
-  // e nesse caso específico não deixamos em branco: cai pra "OUTROS" se a
-  // IA esqueceu de classificar, pra não perder o dado de que houve encaminhamento.
-  const motivoTransferencia = encaminharHumano ? (assunto || "OUTROS") : null;
+  // Se está encaminhando, o motivo da transferência sempre usa uma das 3
+  // categorias do menu (ver MOTIVO_TRANSFERENCIA_POR_ASSUNTO acima) — mesmo
+  // se a IA esqueceu de classificar o assunto, cai no padrão "Nossos
+  // serviços" pra não perder o dado de que houve encaminhamento.
+  const motivoTransferencia = encaminharHumano
+    ? MOTIVO_TRANSFERENCIA_POR_ASSUNTO[assunto] || MOTIVO_TRANSFERENCIA_PADRAO
+    : null;
 
   let nomeInformado = null;
   const matchNome = textoResposta.match(/\[NOME:([^\]]+)\]/);
