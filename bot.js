@@ -437,6 +437,26 @@ function registrarListenerDeAtendimento(sock) {
               // Só marca como "processado" com conteúdo confirmado — mesma
               // lógica: falha de descriptografia não deve travar retentativa.
               if (jaProcessadaOuMarcar(msg.key.id)) continue;
+
+              // Comando "#finalizar" digitado DIRETO na conversa com o
+              // cliente (não no chat "Você"). Diferente do chat "Você", essa
+              // mensagem já foi entregue pro celular do cliente antes do bot
+              // conseguir reagir — por isso, em vez de tratá-la como uma
+              // resposta normal, apagamos ela (revoke/"apagar para todos") e
+              // mandamos a pesquisa de satisfação no lugar. Se o WhatsApp não
+              // deixar apagar (passou do prazo, ou o cliente já tinha lido),
+              // a pesquisa é enviada do mesmo jeito — só o "#finalizar" pode
+              // ficar visível pro cliente por um instante nesse caso raro.
+              if (/^#finalizar$/i.test(textoHumano.trim())) {
+                try {
+                  await sock.sendMessage(msg.key.remoteJid, { delete: msg.key });
+                } catch (erroApagar) {
+                  console.error("Não consegui apagar o '#finalizar' digitado na conversa:", erroApagar);
+                }
+                await finalizarConversaEEnviarPesquisa(sock, numeroCliente);
+                continue;
+              }
+
               const atendenteAtivo = db.obterConfiguracao(CHAVE_ATENDENTE_ATIVO);
               console.log(
                 `[Humano${atendenteAtivo ? ` (${atendenteAtivo})` : ""} digitou direto no WhatsApp -> ${numeroCliente}] ${textoHumano}`
