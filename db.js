@@ -1248,4 +1248,3 @@ module.exports = {
   salvarInsightsGerados,
   obterInsightsGerados,
 };
-

@@ -633,8 +633,21 @@ function registrarListenerDeAtendimento(sock) {
           if (encaminharHumano) {
             console.log(`⚠️  [ENCAMINHAR HUMANO] Conversa com ${numeroCliente} precisa de atendente (motivo: ${motivoTransferencia}).`);
             limparHistorico(numeroCliente);
-            db.marcarEncaminhadoHumano(numeroCliente);
+            const protocolo = db.marcarEncaminhadoHumano(numeroCliente);
             if (motivoTransferencia) db.definirMotivoTransferencia(numeroCliente, motivoTransferencia);
+
+            // A resposta da IA (já enviada acima) é gerada livremente por
+            // ela, então o protocolo vem numa segunda mensagem à parte —
+            // diferente do menu numérico, onde dá pra embutir no mesmo
+            // texto fixo antes de enviar.
+            const textoProtocolo = `Nº do Protocolo: #${protocolo}`;
+            const enviadaProtocolo = await sock.sendMessage(numeroParaEnviar, { text: textoProtocolo });
+            if (enviadaProtocolo?.key?.id && enviadaProtocolo?.message) {
+              guardarParaRetry(enviadaProtocolo.key.id, enviadaProtocolo.message);
+              marcarComoEnviadoPeloSistema(enviadaProtocolo.key.id);
+            }
+            db.registrarMensagem(numeroCliente, "sistema", textoProtocolo);
+
             if (!leadAtual) {
               console.log(`ℹ️  [MENU] Não enviado — primeira mensagem já foi encaminhada direto pra humano.`);
             }

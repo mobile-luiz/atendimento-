@@ -195,8 +195,9 @@ async function enviarTexto(sock, destino, numeroCliente, texto, ctx) {
 }
 
 async function transferirHumano(sock, destino, numeroCliente, textoAviso, motivo, ctx) {
-  await enviarTexto(sock, destino, numeroCliente, textoAviso, ctx);
-  db.marcarEncaminhadoHumano(numeroCliente);
+  const protocolo = db.marcarEncaminhadoHumano(numeroCliente);
+  const textoComProtocolo = `${textoAviso}\n\nNº do Protocolo: #${protocolo}`;
+  await enviarTexto(sock, destino, numeroCliente, textoComProtocolo, ctx);
   db.definirMotivoTransferencia(numeroCliente, motivo);
   db.definirAssunto(numeroCliente, motivo);
   definirEstado(numeroCliente, null);
@@ -366,4 +367,3 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
 }
 
 module.exports = { enviarMenuPrincipal, tratarFluxoMenu, obterEstado, definirEstado };
-
