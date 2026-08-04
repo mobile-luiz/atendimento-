@@ -36,13 +36,18 @@ const MOTIVO_SERVICOS = "Nossos serviços";
 // Textos
 // ---------------------------------------------------------------------
 
+// Rodapé lembrando do comando de saída — aparece em toda tela do menu,
+// pra pessoa saber a qualquer momento que pode encerrar sem precisar
+// navegar até uma opção específica.
+const RODAPE_SAIR = `\n\nDigite _Sair_ a qualquer momento se quiser encerrar seu atendimento.`;
+
 const MENU_PRINCIPAL = `Como posso te ajudar? Escolha uma opção digitando o número:
 
 1️⃣ Clínica PAD Saúde Caruaru
 2️⃣ Cartão PAD Saúde+
 3️⃣ Nossos serviços
 4️⃣ Sobre a PAD Saúde
-5️⃣ Falar com o atendente`;
+5️⃣ Falar com o atendente${RODAPE_SAIR}`;
 
 const TEXTO_ATENDENTE_MODALIDADE = `🧑‍💼 *Falar com o atendente*
 
@@ -51,7 +56,7 @@ Com qual recepção você quer falar?
 1️⃣ Recepção da Clínica PAD Saúde Caruaru
 2️⃣ Recepção do Cartão PAD Saúde+
 
-0️⃣ Voltar ao menu principal`;
+0️⃣ Voltar ao menu principal${RODAPE_SAIR}`;
 
 const TEXTO_MODALIDADE_CARTAO = `💳 *Cartão PAD Saúde+*
 
@@ -61,23 +66,23 @@ Pra qual modalidade você quer ver os preços?
 2️⃣ Família — para sua família
 3️⃣ Empresa — para sua equipe
 
-0️⃣ Voltar ao menu principal`;
+0️⃣ Voltar ao menu principal${RODAPE_SAIR}`;
 
 const TEXTO_FAMILIA_QUANTIDADE = `Quantas pessoas da família vão entrar no plano?
 
 1️⃣ 3 a 4 vidas
 2️⃣ 5 vidas ou mais
 
-0️⃣ Voltar ao menu principal`;
+0️⃣ Voltar ao menu principal${RODAPE_SAIR}`;
 
 const TEXTO_EMPRESA_TIPO = `Qual modalidade empresarial?
 
 1️⃣ PJ Adesão
 2️⃣ PJ Fatura
 
-0️⃣ Voltar ao menu principal`;
+0️⃣ Voltar ao menu principal${RODAPE_SAIR}`;
 
-const RODAPE_PLANOS = `\n\nDigite 1, 2 ou 3 pra solicitar o Inicial, Essencial ou Confort com um atendente, ou 0 pra voltar ao menu principal.`;
+const RODAPE_PLANOS = `\n\nDigite 1, 2 ou 3 pra solicitar o Inicial, Essencial ou Confort com um atendente, ou 0 pra voltar ao menu principal.${RODAPE_SAIR}`;
 
 const TEXTO_PLANOS_PESSOA_FISICA = `👤 *Pessoa Física — Para você*
 Contratação individual, valor mensal fixo para uma pessoa.
@@ -159,7 +164,7 @@ Ao longo de mais de 10 anos, diferentes formas de atendimento passaram a fazer p
 *Cuidado onde fizer sentido*
 Hoje, conectamos assistência domiciliar, clínicas, telessaúde e benefícios para acompanhar diferentes necessidades.
 
-Digite 1, 2, 3, 4 ou 5 pra ver outra opção do menu.`;
+Digite 1, 2, 3, 4 ou 5 pra ver outra opção do menu.${RODAPE_SAIR}`;
 
 const AVISO_TRANSFERENCIA_CLINICA =
   "Vou te transferir para um atendente da nossa clínica em Caruaru. Só um instante! 😊";
@@ -171,6 +176,9 @@ const AVISO_TRANSFERENCIA_PJ_FATURA =
   "Pra modalidade PJ Fatura, um atendente vai te passar as condições certinhas. Vou te transferir agora!";
 const AVISO_TRANSFERENCIA_RECEPCAO_CARTAO =
   "Vou te transferir para um atendente da recepção do Cartão PAD Saúde+. Só um instante! 😊";
+
+const TEXTO_SAIR =
+  "Tudo bem, atendimento encerrado por aqui! 👋 Se precisar de algo, é só me chamar de novo a qualquer momento.";
 
 // ---------------------------------------------------------------------
 // Envio / registro
@@ -201,16 +209,38 @@ async function enviarMenuPrincipal(sock, destino, numeroCliente, ctx) {
 }
 
 /**
+ * Encerra o atendimento a pedido do próprio cliente (comando "Sair").
+ * Manda a despedida, marca a conversa como finalizada (mesmo efeito do
+ * "#finalizar" usado pela recepção) e limpa o estado do menu — se a
+ * pessoa escrever de novo depois, a conversa reabre normalmente e ela
+ * recebe o menu principal do zero.
+ */
+async function encerrarAtendimento(sock, destino, numeroCliente, ctx) {
+  await enviarTexto(sock, destino, numeroCliente, TEXTO_SAIR, ctx);
+  db.marcarFinalizada(numeroCliente);
+  definirEstado(numeroCliente, null);
+}
+
+/**
  * Tenta tratar a mensagem do cliente como resposta a um menu em andamento.
  * Retorna true se tratou (e portanto a IA NÃO deve responder essa mensagem),
  * ou false se não havia menu ativo / a resposta não bateu com nenhuma opção
  * válida (nesse caso cai pro fluxo normal da IA, sem travar a pessoa).
  */
 async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx) {
+  const opcao = textoRecebido.trim();
+
+  // "Sair" funciona a qualquer momento — dentro de qualquer tela do menu
+  // numérico, já que essa função roda pra toda mensagem do cliente antes
+  // do fluxo livre da IA. Checado antes do estado pra não depender de
+  // estar numa etapa específica do menu.
+  if (/^sair$/i.test(opcao)) {
+    await encerrarAtendimento(sock, destino, numeroCliente, ctx);
+    return true;
+  }
+
   const estadoAtual = obterEstado(numeroCliente);
   if (!estadoAtual) return false;
-
-  const opcao = textoRecebido.trim();
 
   if (estadoAtual === "PRINCIPAL") {
     if (opcao === "1") {
@@ -336,3 +366,4 @@ async function tratarFluxoMenu(sock, destino, numeroCliente, textoRecebido, ctx)
 }
 
 module.exports = { enviarMenuPrincipal, tratarFluxoMenu, obterEstado, definirEstado };
+
