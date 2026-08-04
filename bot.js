@@ -462,6 +462,41 @@ function registrarListenerDeAtendimento(sock) {
                 continue;
               }
 
+              // Comando "#<nome> <mensagem>" digitado DIRETO na conversa com
+              // o cliente — ex: "#luiz teste". Isso faz três coisas de uma
+              // vez: (1) define esse nome como atendente ativo, do mesmo
+              // jeito que o "#nome" no chat "Você", valendo pras próximas
+              // mensagens digitadas direto também; (2) EDITA a mensagem pra
+              // aparecer formatada como "*Luiz:* teste" pro cliente, então
+              // ele já vê quem está falando com ele; (3) salva no sistema com
+              // esse atendente, pra entrar certinho na Performance dos
+              // Atendentes. Se digitar só "#luiz" sem nada depois, vira um
+              // aviso genérico de início de atendimento. "#finalizar" fica de
+              // fora dessa regra (é tratado acima, à parte).
+              const matchNomeDireto = textoHumano.trim().match(/^#([a-zA-ZÀ-ÿ0-9_]+)(?:\s+([\s\S]+))?$/);
+              if (matchNomeDireto && matchNomeDireto[1].toLowerCase() !== "finalizar") {
+                const nomeFormatado =
+                  matchNomeDireto[1].charAt(0).toUpperCase() + matchNomeDireto[1].slice(1).toLowerCase();
+                const restoMensagem = (matchNomeDireto[2] || "").trim();
+                const textoParaCliente = restoMensagem
+                  ? `*${nomeFormatado}:* ${restoMensagem}`
+                  : `🧑‍⚕️ ${nomeFormatado} iniciou o atendimento.`;
+
+                db.definirConfiguracao(CHAVE_ATENDENTE_ATIVO, nomeFormatado);
+
+                try {
+                  await sock.sendMessage(msg.key.remoteJid, { text: textoParaCliente, edit: msg.key });
+                } catch (erroEditarNome) {
+                  console.error("Não consegui editar a mensagem com o nome do atendente:", erroEditarNome);
+                }
+
+                console.log(`[Humano (${nomeFormatado}) digitou direto no WhatsApp -> ${numeroCliente}] ${textoParaCliente}`);
+                db.registrarMensagem(numeroCliente, "humano", textoParaCliente, null, null, nomeFormatado);
+                db.marcarEncaminhadoHumano(numeroCliente);
+                limparHistorico(numeroCliente);
+                continue;
+              }
+
               const atendenteAtivo = db.obterConfiguracao(CHAVE_ATENDENTE_ATIVO);
               console.log(
                 `[Humano${atendenteAtivo ? ` (${atendenteAtivo})` : ""} digitou direto no WhatsApp -> ${numeroCliente}] ${textoHumano}`
