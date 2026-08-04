@@ -416,8 +416,12 @@ function obterEstatisticas() {
 
   const { inicioISO, fimISO } = obterLimitesHojeRecife();
 
+  // Conta leads que tiveram QUALQUER atividade hoje (mensagem nova ou
+  // continuação de conversa antiga), não só quem mandou a primeira
+  // mensagem hoje — senão o card fica zerado em dias sem lead novo,
+  // mesmo com dezenas de mensagens indo e voltando.
   const leadsHoje = db
-    .prepare(`SELECT COUNT(*) AS c FROM leads WHERE primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`)
+    .prepare(`SELECT COUNT(*) AS c FROM leads WHERE ultima_mensagem_em >= ? AND ultima_mensagem_em < ?`)
     .get(inicioISO, fimISO).c;
 
   const mensagensHoje = db
