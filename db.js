@@ -127,6 +127,13 @@ try {
   db.exec(`ALTER TABLE leads ADD COLUMN pesquisa_respondida_em TEXT`);
 } catch (e) {}
 
+// Migração segura: número de protocolo gerado toda vez que a conversa é
+// encaminhada pra atendimento humano — dá pro cliente algo concreto pra
+// referenciar (e aparece no histórico/painel).
+try {
+  db.exec(`ALTER TABLE leads ADD COLUMN protocolo TEXT`);
+} catch (e) {}
+
 /**
  * Converte duas datas (início do dia "desde" até o fim do dia "ate") num
  * intervalo ISO [inicioISO, fimISO) pronto pra usar em cláusulas SQL
@@ -216,9 +223,31 @@ function obterConfiguracao(chave) {
   return linha?.valor ?? null;
 }
 
-/** Marca um lead como encaminhado para atendimento humano. */
+/**
+ * Gera o próximo número de protocolo em ordem sequencial (1, 2, 3...),
+ * guardando o último valor usado na tabela configuracoes. Diferente de
+ * pegar MAX(protocolo) nos leads, esse contador nunca "anda pra trás"
+ * mesmo que um protocolo antigo seja apagado ou um lead removido.
+ */
+function proximoProtocolo() {
+  const atual = parseInt(obterConfiguracao("ultimo_protocolo") || "0", 10) || 0;
+  const proximo = atual + 1;
+  definirConfiguracao("ultimo_protocolo", String(proximo));
+  return String(proximo);
+}
+
+/**
+ * Marca um lead como encaminhado para atendimento humano e gera um novo
+ * número de protocolo sequencial (1, 2, 3...) pra essa transferência.
+ * Retorna o protocolo gerado, pra quem chamou poder mostrar pro cliente
+ * na hora (ex: "Nº do Protocolo: #4").
+ */
 function marcarEncaminhadoHumano(numero) {
-  db.prepare(`UPDATE leads SET status = 'encaminhado_humano', passou_por_humano = 1 WHERE numero = ?`).run(numero);
+  const protocolo = proximoProtocolo();
+  db.prepare(
+    `UPDATE leads SET status = 'encaminhado_humano', passou_por_humano = 1, protocolo = ? WHERE numero = ?`
+  ).run(protocolo, numero);
+  return protocolo;
 }
 
 /** Guarda o motivo (categorizado pela IA) pelo qual a conversa foi encaminhada. */
@@ -1219,3 +1248,4 @@ module.exports = {
   salvarInsightsGerados,
   obterInsightsGerados,
 };
+
