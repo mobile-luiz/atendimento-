@@ -91,6 +91,28 @@ try {
   // coluna já existe — ok, ignora.
 }
 
+// Migração segura: guarda se a conversa JÁ passou por um humano em algum
+// momento (nunca é resetada depois). Diferente da coluna "status", que
+// reflete o estado ATUAL (e volta pra 'ativo' quando a conversa é
+// finalizada) — sem essa coluna separada, uma conversa finalizada "esquecia"
+// que precisou de atendente, fazendo a taxa de encaminhamento pra humano
+// cair errado (inclusive zerar) assim que as conversas eram encerradas.
+try {
+  db.exec(`ALTER TABLE leads ADD COLUMN passou_por_humano INTEGER NOT NULL DEFAULT 0`);
+} catch (e) {
+  // coluna já existe — ok, ignora.
+}
+// Corrige o histórico já existente: qualquer lead que tenha uma mensagem
+// "humana" registrada, ou que já esteja com status 'encaminhado_humano'
+// agora, com certeza passou por humano em algum momento.
+try {
+  db.exec(`
+    UPDATE leads SET passou_por_humano = 1
+    WHERE status = 'encaminhado_humano'
+       OR numero IN (SELECT DISTINCT numero FROM mensagens WHERE remetente = 'humano')
+  `);
+} catch (e) {}
+
 // Migrações seguras: colunas da pesquisa de satisfação enviada ao finalizar.
 try {
   db.exec(`ALTER TABLE leads ADD COLUMN pesquisa_pendente INTEGER NOT NULL DEFAULT 0`);
@@ -187,7 +209,7 @@ function obterConfiguracao(chave) {
 
 /** Marca um lead como encaminhado para atendimento humano. */
 function marcarEncaminhadoHumano(numero) {
-  db.prepare(`UPDATE leads SET status = 'encaminhado_humano' WHERE numero = ?`).run(numero);
+  db.prepare(`UPDATE leads SET status = 'encaminhado_humano', passou_por_humano = 1 WHERE numero = ?`).run(numero);
 }
 
 /** Guarda o motivo (categorizado pela IA) pelo qual a conversa foi encaminhada. */
@@ -413,10 +435,10 @@ function obterTaxaEncaminhamentoHumano(desde = null, ate = null) {
     ? db
         .prepare(
           `SELECT COUNT(*) AS c FROM leads
-           WHERE status = 'encaminhado_humano' AND primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`
+           WHERE passou_por_humano = 1 AND primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`
         )
         .get(intervalo.inicioISO, intervalo.fimISO).c
-    : db.prepare(`SELECT COUNT(*) AS c FROM leads WHERE status = 'encaminhado_humano'`).get().c;
+    : db.prepare(`SELECT COUNT(*) AS c FROM leads WHERE passou_por_humano = 1`).get().c;
 
   return Math.round((humano / total) * 100);
 }
@@ -741,7 +763,7 @@ function obterPerformanceAtendentes(desde = null, ate = null) {
     porNumero[m.numero].push(m);
   }
 
-  const porAtendente = {}; // nome -> { conversas: Set, somaSegundos, contagemTempo, primeiraAtividade, ultimaAtividade }
+  const porAtendente = {}; // nome -> { conversas: Set, somaSegundos, contagemTempo, primeiraAtividade, ultimaAtividade, janelaPorConversa }
 
   function garantirAtendente(nome) {
     if (!porAtendente[nome]) {
@@ -751,6 +773,10 @@ function obterPerformanceAtendentes(desde = null, ate = null) {
         contagemTempo: 0,
         primeiraAtividade: null,
         ultimaAtividade: null,
+        // Primeira/última mensagem DESSE atendente em cada conversa (numero
+        // -> {inicio, fim} em ms) — usado pra calcular só o tempo que ele
+        // mesmo ficou ativo ali, não a conversa inteira.
+        janelaPorConversa: {},
       };
     }
     return porAtendente[nome];
@@ -774,6 +800,15 @@ function obterPerformanceAtendentes(desde = null, ate = null) {
           registro.ultimaAtividade = m.criado_em;
         }
 
+        // Janela de atividade desse atendente NESSA conversa específica.
+        const tempoMs = new Date(m.criado_em).getTime();
+        if (!registro.janelaPorConversa[numero]) {
+          registro.janelaPorConversa[numero] = { inicio: tempoMs, fim: tempoMs };
+        } else {
+          if (tempoMs < registro.janelaPorConversa[numero].inicio) registro.janelaPorConversa[numero].inicio = tempoMs;
+          if (tempoMs > registro.janelaPorConversa[numero].fim) registro.janelaPorConversa[numero].fim = tempoMs;
+        }
+
         if (aguardandoDesde !== null) {
           const diff = (new Date(m.criado_em).getTime() - aguardandoDesde) / 1000;
           if (diff >= 0 && diff < 300) {
@@ -784,16 +819,6 @@ function obterPerformanceAtendentes(desde = null, ate = null) {
         }
       }
     }
-  }
-
-  // Duração de cada conversa (início/fim reais), pra somar o tempo total de
-  // atendimento de cada atendente nas conversas que ele participou.
-  const duracaoPorNumero = {};
-  for (const lead of db.prepare(`SELECT numero, primeira_mensagem_em, ultima_mensagem_em FROM leads`).all()) {
-    duracaoPorNumero[lead.numero] = Math.max(
-      0,
-      Math.round((new Date(lead.ultima_mensagem_em) - new Date(lead.primeira_mensagem_em)) / 1000)
-    );
   }
 
   // Taxa de resolução: atribuída ao último atendente humano que mexeu na
@@ -828,13 +853,16 @@ function obterPerformanceAtendentes(desde = null, ate = null) {
       const resolucao = resolucaoPorAtendente[nome];
       const totalAvaliacoes = resolucao ? resolucao.resolvidos + resolucao.naoResolvidos : 0;
 
-      // Soma a duração de cada conversa que esse atendente participou. Se
-      // duas pessoas atenderam a mesma conversa, cada uma soma o tempo dela
-      // por completo — é uma aproximação, não uma divisão exata de quem
-      // falou quando dentro da conversa.
+      // Soma, pra cada conversa que esse atendente participou, só o tempo
+      // entre a primeira e a última mensagem QUE ELE MESMO mandou ali —
+      // não a conversa inteira (que pode incluir outros atendentes ou
+      // horas de espera antes/depois da parte dele).
       let tempoAtendimentoTotalSegundos = 0;
       for (const numero of dados.conversas) {
-        tempoAtendimentoTotalSegundos += duracaoPorNumero[numero] || 0;
+        const janela = dados.janelaPorConversa[numero];
+        if (janela) {
+          tempoAtendimentoTotalSegundos += Math.max(0, Math.round((janela.fim - janela.inicio) / 1000));
+        }
       }
 
       return {
