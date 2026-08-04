@@ -58,7 +58,7 @@ Com qual recepção você quer falar?
 
 0️⃣ Voltar ao menu principal${RODAPE_SAIR}`;
 
-const TEXTO_MODALIDADE_CARTAO = `💳 *Cartão PAD Saúde+*
+const TEXTO_MODALIDADE_CARTAO = `💳 *Saia da fila com elegância escolha Cartão PAD Saúde+*
 
 Pra qual modalidade você quer ver os preços?
 
