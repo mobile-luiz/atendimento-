@@ -126,9 +126,10 @@ function iniciarPainel(contextoEnvio = {}) {
   app.get("/api/metricas", (req, res) => {
     regenerarInsightsSeNecessario();
     const { desde, ate } = req.query;
-    const inicioPeriodo = desde ? new Date(`${desde}T00:00:00`) : null;
-    const fimPeriodo = ate ? new Date(`${ate}T00:00:00`) : null;
-    res.json(db.obterMetricasGerenciais(inicioPeriodo, fimPeriodo));
+    // Manda a data como veio do seletor (string "YYYY-MM-DD"), sem
+    // transformar em Date aqui — quem interpreta o fuso horário certinho
+    // (Caruaru / America/Recife) é o db.js.
+    res.json(db.obterMetricasGerenciais(desde || null, ate || null));
   });
 
   // Gera insights novos na hora (usado pelo botão "Atualizar com IA" do painel).
