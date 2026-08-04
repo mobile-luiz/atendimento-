@@ -1,7 +1,7 @@
 // db.js
 // Banco de dados local (SQLite) que registra cada lead (número que interagiu
 // com o bot) e o histórico completo das conversas, para alimentar o painel
-// gerencial.
+// gerenciaL.
 
 const { DatabaseSync } = require("node:sqlite");
 const path = require("path");
