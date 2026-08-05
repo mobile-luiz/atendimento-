@@ -667,8 +667,6 @@
   .funil-barra.estagio-1{ background:linear-gradient(135deg, #7C89FF, #3548E0); }
   .funil-barra.estagio-2{ background:linear-gradient(135deg, #5A9CFF, #2C6BE0); }
   .funil-barra.estagio-3{ background:linear-gradient(135deg, #93B4FF, #4C7CF5); }
-  .funil-barra.estagio-4{ background:linear-gradient(135deg, #4FE0B0, #12A971); }
-  .funil-barra.estagio-5{ background:linear-gradient(135deg, #FFC169, #F5A524); }
   .funil-seta{
     text-align:center;
     font-size:14px;
@@ -1879,17 +1877,11 @@ function renderizarFunil(funil) {
     { classe: 'estagio-1', rotulo: 'Conversas iniciadas', valor: funil.conversasIniciadas },
     { classe: 'estagio-2', rotulo: 'Resolvidas só pela IA', valor: funil.resolvidasPelaIA },
     { classe: 'estagio-3', rotulo: 'Transferidas p/ humano', valor: funil.transferidasHumano },
-    { classe: 'estagio-4', rotulo: 'Já atendidas', valor: funil.transferidasAtendidas },
-    { classe: 'estagio-5', rotulo: 'Aguardando resposta', valor: funil.transferidasAguardando },
   ];
 
   container.innerHTML = estagios.map((e, i) => {
-    // As duas últimas etapas são um recorte de "Transferidas p/ humano",
-    // não mais um afunilamento do total — então o percentual delas é
-    // relativo às transferidas, não ao total de conversas iniciadas.
-    const base = i >= 3 ? (funil.transferidasHumano || 1) : maximo;
-    const largura = Math.max(30, Math.round((e.valor / base) * 100));
-    const percentual = i === 0 ? '' : `<span style="opacity:0.75"> · ${Math.round((e.valor / base) * 100)}%</span>`;
+    const largura = Math.max(30, Math.round((e.valor / maximo) * 100));
+    const percentual = i === 0 ? '' : `<span style="opacity:0.75"> · ${Math.round((e.valor / maximo) * 100)}%</span>`;
     return `
       <div class="funil-estagio">
         <div class="funil-barra-wrap">
@@ -1898,7 +1890,7 @@ function renderizarFunil(funil) {
             <span class="rotulo">${e.rotulo}${percentual}</span>
           </div>
         </div>
-        ${i < estagios.length - 1 && i !== 3 ? '<div class="funil-seta">↓</div>' : ''}
+        ${i < estagios.length - 1 ? '<div class="funil-seta">↓</div>' : ''}
       </div>
     `;
   }).join('');
