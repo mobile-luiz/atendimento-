@@ -237,12 +237,24 @@ function proximoProtocolo() {
 }
 
 /**
- * Marca um lead como encaminhado para atendimento humano e gera um novo
- * número de protocolo sequencial (1, 2, 3...) pra essa transferência.
- * Retorna o protocolo gerado, pra quem chamou poder mostrar pro cliente
- * na hora (ex: "Nº do Protocolo: #4").
+ * Marca um lead como encaminhado para atendimento humano. Só gera um
+ * protocolo NOVO se essa conversa ainda não estava com status
+ * 'encaminhado_humano' — porque essa função é chamada a cada mensagem que
+ * o atendente manda (painel ou direto no WhatsApp), não só na primeira.
+ * Sem essa checagem, o protocolo trocava a cada mensagem do atendente
+ * dentro da MESMA conversa, sobrescrevendo o anterior toda hora. Se a
+ * conversa for finalizada e precisar de humano de novo depois, aí sim
+ * gera um protocolo novo (é um atendimento novo).
+ * Retorna o protocolo (o já existente, ou um novo se for a primeira vez).
  */
 function marcarEncaminhadoHumano(numero) {
+  const leadAtual = db.prepare(`SELECT status, protocolo FROM leads WHERE numero = ?`).get(numero);
+
+  if (leadAtual && leadAtual.status === "encaminhado_humano" && leadAtual.protocolo) {
+    db.prepare(`UPDATE leads SET passou_por_humano = 1 WHERE numero = ?`).run(numero);
+    return leadAtual.protocolo;
+  }
+
   const protocolo = proximoProtocolo();
   db.prepare(
     `UPDATE leads SET status = 'encaminhado_humano', passou_por_humano = 1, protocolo = ? WHERE numero = ?`
