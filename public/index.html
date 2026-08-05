@@ -279,27 +279,19 @@
   .palavras-nuvem{
     display:flex;
     flex-wrap:wrap;
-    gap:8px;
+    align-items:baseline;
+    justify-content:center;
+    gap:6px 18px;
+    padding:16px 10px 8px;
+    line-height:1.2;
   }
-  .palavra-tag{
-    background:var(--blue-soft);
-    color:var(--blue);
-    font-family:'IBM Plex Mono', monospace;
-    font-size:12.5px;
-    padding:6px 11px;
-    border-radius:20px;
-    display:flex;
-    align-items:center;
-    gap:7px;
+  .palavra-nuvem-item{
+    font-family:'Fraunces', serif;
+    white-space:nowrap;
+    cursor:default;
+    transition:opacity 0.12s ease;
   }
-  .palavra-tag .contagem{
-    background:var(--blue);
-    color:#FFFFFF;
-    font-weight:700;
-    font-size:10px;
-    padding:1px 6px;
-    border-radius:10px;
-  }
+  .palavra-nuvem-item:hover{ opacity:0.72; }
 
   .painel-donuts{
     display:grid;
@@ -1485,9 +1477,19 @@ async function carregarMetricas() {
   if (!m.palavrasMaisUsadas || m.palavrasMaisUsadas.length === 0) {
     nuvem.innerHTML = '<span style="color:var(--ink-soft); font-size:13px;">Ainda não há mensagens suficientes pra identificar um padrão.</span>';
   } else {
-    nuvem.innerHTML = m.palavrasMaisUsadas.map(p => `
-      <span class="palavra-tag">${p.palavra} <span class="contagem">${p.total}</span></span>
-    `).join('');
+    const CORES_NUVEM = ['#3548E0', '#12A971', '#6C7CF0', '#F5A524', '#F2536B', '#16215C', '#4C7CF5', '#0EAE7B'];
+    const totais = m.palavrasMaisUsadas.map(p => p.total);
+    const maxTotal = Math.max(...totais);
+    const minTotal = Math.min(...totais);
+    const TAM_MIN = 13, TAM_MAX = 40;
+
+    nuvem.innerHTML = m.palavrasMaisUsadas.map((p, i) => {
+      const escala = maxTotal === minTotal ? 1 : (p.total - minTotal) / (maxTotal - minTotal);
+      const tamanho = TAM_MIN + escala * (TAM_MAX - TAM_MIN);
+      const peso = tamanho > 24 ? 700 : 600;
+      const cor = CORES_NUVEM[i % CORES_NUVEM.length];
+      return `<span class="palavra-nuvem-item" style="font-size:${tamanho.toFixed(1)}px; font-weight:${peso}; color:${cor};" title="${p.total} menções">${p.palavra}</span>`;
+    }).join('');
   }
 
   renderizarFunil(m.funilAtendimento);
