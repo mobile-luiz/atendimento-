@@ -659,24 +659,35 @@ function obterFunilAtendimento(desde = null, ate = null) {
 function obterEvolucaoConversas(dias = 7, desde = null, ate = null) {
   const { listaDias, inicioISO, fimISO } = resolverIntervaloDiasRecife(dias, desde, ate);
 
-  const leads = db
-    .prepare(`SELECT primeira_mensagem_em, passou_por_humano FROM leads WHERE primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`)
+  // Conta leads com QUALQUER mensagem no dia (não só quem mandou a
+  // primeira mensagem naquele dia) — senão um dia cheio de troca de
+  // mensagem com leads já existentes aparecia zerado no gráfico, mesmo
+  // tendo bastante conversa rolando. passou_por_humano (permanente) define
+  // se aquele lead conta como "resolvido só pela IA".
+  const mensagens = db
+    .prepare(
+      `SELECT m.numero, m.criado_em, l.passou_por_humano
+       FROM mensagens m
+       JOIN leads l ON l.numero = m.numero
+       WHERE m.criado_em >= ? AND m.criado_em < ?`
+    )
     .all(inicioISO, fimISO);
 
   const porDia = {};
-  for (const dia of listaDias) porDia[dia] = { total: 0, resolvidasIA: 0 };
+  for (const dia of listaDias) porDia[dia] = { total: new Set(), resolvidasIA: new Set() };
 
-  for (const lead of leads) {
-    const diaLocal = new Date(lead.primeira_mensagem_em).toLocaleDateString("sv-SE", { timeZone: "America/Recife" });
+  for (const msg of mensagens) {
+    const diaLocal = new Date(msg.criado_em).toLocaleDateString("sv-SE", { timeZone: "America/Recife" });
     if (!(diaLocal in porDia)) continue;
-    porDia[diaLocal].total += 1;
-    // passou_por_humano (permanente) em vez de status — que volta pra
-    // 'ativo' quando a conversa é finalizada e faria uma conversa
-    // transferida aparecer aqui como "resolvida só pela IA".
-    if (!lead.passou_por_humano) porDia[diaLocal].resolvidasIA += 1;
+    porDia[diaLocal].total.add(msg.numero);
+    if (!msg.passou_por_humano) porDia[diaLocal].resolvidasIA.add(msg.numero);
   }
 
-  return Object.entries(porDia).map(([dia, valores]) => ({ dia, ...valores }));
+  return listaDias.map((dia) => ({
+    dia,
+    total: porDia[dia].total.size,
+    resolvidasIA: porDia[dia].resolvidasIA.size,
+  }));
 }
 
 /**
@@ -1256,4 +1267,3 @@ module.exports = {
   salvarInsightsGerados,
   obterInsightsGerados,
 };
-
