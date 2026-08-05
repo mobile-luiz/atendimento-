@@ -1813,6 +1813,7 @@ function renderizarAtendentes(atendentes) {
         <tr>
           <th>Atendente</th>
           <th>Conversas</th>
+          <th>Protocolo(s)</th>
           <th>Tempo médio</th>
           <th>Taxa de resolução</th>
           <th>Avaliações</th>
@@ -1831,6 +1832,7 @@ function renderizarAtendentes(atendentes) {
               </div>
             </td>
             <td class="mono">${a.conversas}</td>
+            <td class="mono">${a.protocolos && a.protocolos.length ? a.protocolos.map(p => '#' + p).join(', ') : '—'}</td>
             <td class="mono">${formatarDuracao(a.tempoMedioSegundos)}</td>
             <td class="mono">${a.taxaResolucaoPercentual !== null ? a.taxaResolucaoPercentual + '%' : '—'}</td>
             <td class="mono">${a.totalAvaliacoes}</td>
@@ -1872,6 +1874,7 @@ function renderizarConversasRecentes(conversas) {
       <thead>
         <tr>
           <th>Paciente</th>
+          <th>Protocolo</th>
           <th>Canal</th>
           <th>Assunto</th>
           <th>Atendente / IA</th>
@@ -1885,6 +1888,7 @@ function renderizarConversasRecentes(conversas) {
         ${conversasPagina.map(c => `
           <tr>
             <td>${c.nome || formatarNumero(c.numero)}</td>
+            <td class="mono">${c.protocolo ? '#' + c.protocolo : '—'}</td>
             <td><span class="canal-icone" title="WhatsApp">${ICONE_WHATSAPP}</span></td>
             <td>${c.assunto ? (ROTULOS_ASSUNTO[c.assunto] || c.assunto) : '—'}</td>
             <td>${c.atendenteOuIA}</td>
