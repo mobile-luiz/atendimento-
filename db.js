@@ -647,7 +647,29 @@ function obterFunilAtendimento(desde = null, ate = null) {
 
   const resolvidasPelaIA = conversasIniciadas - transferidasHumano;
 
-  return { conversasIniciadas, resolvidasPelaIA, transferidasHumano };
+  // Dentro de quem foi transferido, separa quem ainda está esperando a
+  // recepção responder (status atual = 'encaminhado_humano', mesma
+  // definição do card "Aguardando humano" do topo) de quem já foi
+  // atendido (passou por humano, mas o status já saiu dessa fila —
+  // seja porque a conversa foi finalizada, seja porque voltou pra IA).
+  const transferidasAguardando = intervalo
+    ? db
+        .prepare(
+          `SELECT COUNT(*) AS c FROM leads
+           WHERE status = 'encaminhado_humano' AND primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`
+        )
+        .get(intervalo.inicioISO, intervalo.fimISO).c
+    : db.prepare(`SELECT COUNT(*) AS c FROM leads WHERE status = 'encaminhado_humano'`).get().c;
+
+  const transferidasAtendidas = transferidasHumano - transferidasAguardando;
+
+  return {
+    conversasIniciadas,
+    resolvidasPelaIA,
+    transferidasHumano,
+    transferidasAguardando,
+    transferidasAtendidas,
+  };
 }
 
 /**
