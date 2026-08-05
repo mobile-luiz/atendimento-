@@ -984,7 +984,7 @@ function obterPerformanceAtendentes(desde = null, ate = null) {
           .sort((a, b) => Number(a) - Number(b)),
       };
     })
-    .sort((a, b) => b.conversas - a.conversas);
+    .sort((a, b) => new Date(b.termino) - new Date(a.termino));
 }
 
 /**
