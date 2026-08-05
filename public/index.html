@@ -511,6 +511,36 @@
     font-size:13px;
   }
 
+  .paginacao{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:14px;
+    padding-top:16px;
+  }
+  .paginacao-botao{
+    width:28px; height:28px;
+    border-radius:8px;
+    border:1px solid var(--border);
+    background:var(--panel);
+    color:var(--ink);
+    font-size:14px;
+    line-height:1;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:background 0.12s ease, border-color 0.12s ease;
+  }
+  .paginacao-botao:hover:not(:disabled){ background:var(--panel-alt); border-color:var(--blue); }
+  .paginacao-botao:disabled{ opacity:0.35; cursor:default; }
+  .paginacao-info{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11.5px;
+    font-weight:600;
+    color:var(--ink-soft);
+  }
+
   .status-badge{
     font-family:'IBM Plex Mono', monospace;
     font-size:11px;
@@ -1741,12 +1771,41 @@ function iniciaisDoNome(nome) {
   return partes.length === 1 ? partes[0].slice(0, 2).toUpperCase() : (partes[0][0] + partes[partes.length - 1][0]).toUpperCase();
 }
 
+const ITENS_POR_PAGINA = 5;
+let paginaAtendentesAtual = 1;
+let ultimosAtendentes = [];
+let paginaConversasAtual = 1;
+let ultimasConversas = [];
+
+/** Monta os botões "‹ Página X de Y ›" — reaproveitado pelas duas tabelas paginadas. */
+function construirPaginacao(paginaAtual, totalPaginas, nomeFuncaoMudarPagina) {
+  if (totalPaginas <= 1) return '';
+  return `
+    <div class="paginacao">
+      <button class="paginacao-botao" onclick="${nomeFuncaoMudarPagina}(-1)" ${paginaAtual === 1 ? 'disabled' : ''}>‹</button>
+      <span class="paginacao-info">Página ${paginaAtual} de ${totalPaginas}</span>
+      <button class="paginacao-botao" onclick="${nomeFuncaoMudarPagina}(1)" ${paginaAtual === totalPaginas ? 'disabled' : ''}>›</button>
+    </div>
+  `;
+}
+
+function mudarPaginaAtendentes(delta) {
+  paginaAtendentesAtual += delta;
+  renderizarAtendentes(ultimosAtendentes);
+}
+
 function renderizarAtendentes(atendentes) {
+  ultimosAtendentes = atendentes || [];
   const container = document.getElementById('atendentes-conteudo');
-  if (!atendentes || atendentes.length === 0) {
+  if (ultimosAtendentes.length === 0) {
     container.innerHTML = '<div class="atendentes-vazio">Ninguém respondeu manualmente ainda (nem pelo painel, nem com "#nome" no WhatsApp).</div>';
     return;
   }
+
+  const totalPaginas = Math.max(1, Math.ceil(ultimosAtendentes.length / ITENS_POR_PAGINA));
+  paginaAtendentesAtual = Math.min(Math.max(1, paginaAtendentesAtual), totalPaginas);
+  const inicio = (paginaAtendentesAtual - 1) * ITENS_POR_PAGINA;
+  const atendentesPagina = ultimosAtendentes.slice(inicio, inicio + ITENS_POR_PAGINA);
 
   container.innerHTML = `
     <table class="atendentes-tabela">
@@ -1763,7 +1822,7 @@ function renderizarAtendentes(atendentes) {
         </tr>
       </thead>
       <tbody>
-        ${atendentes.map(a => `
+        ${atendentesPagina.map(a => `
           <tr>
             <td>
               <div class="atendente-nome-cel">
@@ -1782,19 +1841,31 @@ function renderizarAtendentes(atendentes) {
         `).join('')}
       </tbody>
     </table>
+    ${construirPaginacao(paginaAtendentesAtual, totalPaginas, 'mudarPaginaAtendentes')}
   `;
 }
 
 const ICONE_WHATSAPP = '<svg viewBox="0 0 24 24" fill="#12A971"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21h.01c5.46 0 9.91-4.45 9.91-9.91C21.96 6.45 17.5 2 12.04 2zm0 18.15h-.01c-1.48 0-2.93-.4-4.2-1.15l-.3-.18-3.12.82.83-3.04-.2-.31a8.19 8.19 0 0 1-1.26-4.38c0-4.54 3.7-8.23 8.24-8.23a8.2 8.2 0 0 1 8.23 8.23c0 4.54-3.7 8.24-8.21 8.24zm4.52-6.17c-.25-.12-1.47-.72-1.7-.81-.23-.08-.39-.12-.56.13-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.04-.38-1.98-1.22-.73-.65-1.23-1.46-1.37-1.7-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.12-.14.16-.25.24-.41.08-.17.04-.31-.02-.43-.06-.12-.56-1.36-.77-1.86-.2-.49-.41-.42-.56-.43-.14-.01-.31-.01-.47-.01-.17 0-.43.06-.66.31-.23.25-.86.85-.86 2.06 0 1.22.89 2.4 1.01 2.56.12.17 1.75 2.67 4.24 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.55.1.47-.07 1.47-.6 1.68-1.18.21-.58.21-1.08.14-1.18-.06-.11-.23-.17-.48-.29z"/></svg>';
 
+function mudarPaginaConversas(delta) {
+  paginaConversasAtual += delta;
+  renderizarConversasRecentes(ultimasConversas);
+}
+
 function renderizarConversasRecentes(conversas) {
+  ultimasConversas = conversas || [];
   const container = document.getElementById('conversas-recentes-conteudo');
-  if (!conversas || conversas.length === 0) {
+  if (ultimasConversas.length === 0) {
     container.innerHTML = '<div class="atendentes-vazio">Nenhuma conversa ainda.</div>';
     return;
   }
 
   const ROTULOS_ASSUNTO = { AGENDAMENTO: 'Agendamento', FINANCEIRO: 'Financeiro', CONVENIO: 'Convênio', EXAMES: 'Exames', URGENCIA: 'Urgência', GERAL: 'Geral', OUTROS: 'Outros' };
+
+  const totalPaginas = Math.max(1, Math.ceil(ultimasConversas.length / ITENS_POR_PAGINA));
+  paginaConversasAtual = Math.min(Math.max(1, paginaConversasAtual), totalPaginas);
+  const inicio = (paginaConversasAtual - 1) * ITENS_POR_PAGINA;
+  const conversasPagina = ultimasConversas.slice(inicio, inicio + ITENS_POR_PAGINA);
 
   container.innerHTML = `
     <table class="atendentes-tabela">
@@ -1811,7 +1882,7 @@ function renderizarConversasRecentes(conversas) {
         </tr>
       </thead>
       <tbody>
-        ${conversas.map(c => `
+        ${conversasPagina.map(c => `
           <tr>
             <td>${c.nome || formatarNumero(c.numero)}</td>
             <td><span class="canal-icone" title="WhatsApp">${ICONE_WHATSAPP}</span></td>
@@ -1829,6 +1900,7 @@ function renderizarConversasRecentes(conversas) {
         `).join('')}
       </tbody>
     </table>
+    ${construirPaginacao(paginaConversasAtual, totalPaginas, 'mudarPaginaConversas')}
   `;
 }
 
