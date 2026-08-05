@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -9,9 +10,9 @@
 <style>
   :root{
     --bg: #0B1442;
-    --panel: #FFFFFF;
-    --panel-alt: #EEF1FD;
-    --border: #E1E6FA;
+    --panel: #F1F2F7;
+    --panel-alt: #E6E9F5;
+    --border: #DBDFEE;
     --ink: #10143A;
     --ink-soft: #5B6491;
     --ink-faint: #939BC4;
@@ -403,8 +404,9 @@
     display:flex;
     align-items:center;
     font-family:'IBM Plex Mono', monospace;
-    font-size:9.5px;
-    color:var(--ink-faint);
+    font-size:10px;
+    font-weight:600;
+    color:var(--ink-soft);
   }
   .heatmap-grade{
     display:flex;
@@ -432,8 +434,9 @@
     flex:1;
     text-align:center;
     font-family:'IBM Plex Mono', monospace;
-    font-size:9px;
-    color:var(--ink-faint);
+    font-size:9.5px;
+    font-weight:600;
+    color:var(--ink-soft);
     min-width:0;
   }
   .heatmap-legenda{
@@ -442,8 +445,9 @@
     gap:8px;
     margin-top:12px;
     font-family:'IBM Plex Mono', monospace;
-    font-size:9.5px;
-    color:var(--ink-faint);
+    font-size:10.5px;
+    font-weight:600;
+    color:var(--ink-soft);
   }
   .heatmap-legenda-barra{
     flex:1;
@@ -474,7 +478,7 @@
   .atendentes-tabela th{
     text-align:left;
     font-size:11px;
-    color:var(--ink-faint);
+    color:var(--ink-soft);
     text-transform:uppercase;
     letter-spacing:0.04em;
     font-weight:600;
@@ -744,15 +748,16 @@
   }
   .stat-card .value{
     font-family:'Fraunces', serif;
-    font-size:30px;
-    font-weight:600;
+    font-size:32px;
+    font-weight:700;
     color:var(--ink);
   }
   .stat-card.alert .value{ color:var(--red); }
   .stat-card .subvalor{
     font-family:'IBM Plex Mono', monospace;
-    font-size:11px;
-    color:var(--ink-faint);
+    font-size:11.5px;
+    font-weight:500;
+    color:var(--ink-soft);
     margin-top:5px;
   }
 
@@ -789,7 +794,7 @@
   .grafico-barra{
     width:100%;
     max-width:36px;
-    background:var(--blue-soft);
+    background:rgba(53,72,224,0.28);
     border-radius:6px 6px 2px 2px;
     min-height:3px;
     transition:background 0.15s ease;
@@ -798,18 +803,20 @@
   .grafico-coluna.hoje .grafico-barra{ background:linear-gradient(180deg, #7C89FF, var(--blue)); }
   .grafico-barra .rotulo-valor{
     position:absolute;
-    top:-18px;
+    top:-19px;
     left:50%;
     transform:translateX(-50%);
     font-family:'IBM Plex Mono', monospace;
-    font-size:10px;
-    color:var(--ink-soft);
+    font-size:11.5px;
+    font-weight:700;
+    color:var(--ink);
     white-space:nowrap;
   }
   .grafico-legenda{
     font-family:'IBM Plex Mono', monospace;
-    font-size:10px;
-    color:var(--ink-faint);
+    font-size:11px;
+    font-weight:600;
+    color:var(--ink-soft);
     text-transform:uppercase;
   }
 
