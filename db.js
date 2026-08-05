@@ -1225,7 +1225,7 @@ function obterMetricasGerenciais(inicioPeriodo = null, fimPeriodo = null) {
     tempoMedioRespostaSegundos: obterTempoMedioRespostaSegundos(inicioPeriodo, fimPeriodo),
     taxaEncaminhamentoHumano: obterTaxaEncaminhamentoHumano(inicioPeriodo, fimPeriodo),
     mensagensPorDia: obterMensagensPorDia(7, inicioPeriodo, fimPeriodo),
-    palavrasMaisUsadas: obterPalavrasMaisUsadas(15, inicioPeriodo, fimPeriodo),
+    palavrasMaisUsadas: obterPalavrasMaisUsadas(25, inicioPeriodo, fimPeriodo),
     funilAtendimento: obterFunilAtendimento(inicioPeriodo, fimPeriodo),
     evolucaoConversas: obterEvolucaoConversas(7, inicioPeriodo, fimPeriodo),
     pesquisaSatisfacao: obterEstatisticasPesquisa(inicioPeriodo, fimPeriodo),
