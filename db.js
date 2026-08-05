@@ -631,14 +631,19 @@ function obterFunilAtendimento(desde = null, ate = null) {
         .get(intervalo.inicioISO, intervalo.fimISO).c
     : db.prepare(`SELECT COUNT(*) AS c FROM leads`).get().c;
 
+  // Usa passou_por_humano (permanente) em vez de status = 'encaminhado_humano'
+  // (que volta pra 'ativo' quando a conversa é finalizada) — senão uma
+  // conversa que precisou de atendente e depois foi encerrada contava
+  // errado aqui como "resolvida só pela IA". Mesmo motivo documentado na
+  // migração da coluna passou_por_humano, lá em cima.
   const transferidasHumano = intervalo
     ? db
         .prepare(
           `SELECT COUNT(*) AS c FROM leads
-           WHERE status = 'encaminhado_humano' AND primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`
+           WHERE passou_por_humano = 1 AND primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`
         )
         .get(intervalo.inicioISO, intervalo.fimISO).c
-    : db.prepare(`SELECT COUNT(*) AS c FROM leads WHERE status = 'encaminhado_humano'`).get().c;
+    : db.prepare(`SELECT COUNT(*) AS c FROM leads WHERE passou_por_humano = 1`).get().c;
 
   const resolvidasPelaIA = conversasIniciadas - transferidasHumano;
 
@@ -655,7 +660,7 @@ function obterEvolucaoConversas(dias = 7, desde = null, ate = null) {
   const { listaDias, inicioISO, fimISO } = resolverIntervaloDiasRecife(dias, desde, ate);
 
   const leads = db
-    .prepare(`SELECT primeira_mensagem_em, status FROM leads WHERE primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`)
+    .prepare(`SELECT primeira_mensagem_em, passou_por_humano FROM leads WHERE primeira_mensagem_em >= ? AND primeira_mensagem_em < ?`)
     .all(inicioISO, fimISO);
 
   const porDia = {};
@@ -665,7 +670,10 @@ function obterEvolucaoConversas(dias = 7, desde = null, ate = null) {
     const diaLocal = new Date(lead.primeira_mensagem_em).toLocaleDateString("sv-SE", { timeZone: "America/Recife" });
     if (!(diaLocal in porDia)) continue;
     porDia[diaLocal].total += 1;
-    if (lead.status !== "encaminhado_humano") porDia[diaLocal].resolvidasIA += 1;
+    // passou_por_humano (permanente) em vez de status — que volta pra
+    // 'ativo' quando a conversa é finalizada e faria uma conversa
+    // transferida aparecer aqui como "resolvida só pela IA".
+    if (!lead.passou_por_humano) porDia[diaLocal].resolvidasIA += 1;
   }
 
   return Object.entries(porDia).map(([dia, valores]) => ({ dia, ...valores }));
@@ -1248,3 +1256,4 @@ module.exports = {
   salvarInsightsGerados,
   obterInsightsGerados,
 };
+
