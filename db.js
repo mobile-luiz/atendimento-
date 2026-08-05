@@ -931,6 +931,14 @@ function obterPerformanceAtendentes(desde = null, ate = null) {
     else resolucaoPorAtendente[ultimoAtendente].naoResolvidos += 1;
   }
 
+  // Mapa numero -> protocolo, pra listar os protocolos que cada atendente
+  // passou a mão (uma linha da tabela = um atendente, que pode ter
+  // participado de várias conversas/protocolos diferentes).
+  const protocolosPorNumero = {};
+  for (const l of db.prepare(`SELECT numero, protocolo FROM leads WHERE protocolo IS NOT NULL`).all()) {
+    protocolosPorNumero[l.numero] = l.protocolo;
+  }
+
   return Object.entries(porAtendente)
     .map(([nome, dados]) => {
       const resolucao = resolucaoPorAtendente[nome];
@@ -958,6 +966,10 @@ function obterPerformanceAtendentes(desde = null, ate = null) {
         inicio: dados.primeiraAtividade,
         termino: dados.ultimaAtividade,
         tempoAtendimentoTotalSegundos,
+        protocolos: [...dados.conversas]
+          .map((numero) => protocolosPorNumero[numero])
+          .filter(Boolean)
+          .sort((a, b) => Number(a) - Number(b)),
       };
     })
     .sort((a, b) => b.conversas - a.conversas);
@@ -973,14 +985,14 @@ function obterConversasRecentes(limite = 15, desde = null, ate = null) {
   const leads = intervalo
     ? db
         .prepare(
-          `SELECT numero, nome, assunto, status, finalizada, primeira_mensagem_em, ultima_mensagem_em
+          `SELECT numero, nome, assunto, status, finalizada, protocolo, primeira_mensagem_em, ultima_mensagem_em
            FROM leads WHERE primeira_mensagem_em >= ? AND primeira_mensagem_em < ?
            ORDER BY ultima_mensagem_em DESC LIMIT ?`
         )
         .all(intervalo.inicioISO, intervalo.fimISO, limite)
     : db
         .prepare(
-          `SELECT numero, nome, assunto, status, finalizada, primeira_mensagem_em, ultima_mensagem_em
+          `SELECT numero, nome, assunto, status, finalizada, protocolo, primeira_mensagem_em, ultima_mensagem_em
            FROM leads ORDER BY ultima_mensagem_em DESC LIMIT ?`
         )
         .all(limite);
@@ -1013,6 +1025,7 @@ function obterConversasRecentes(limite = 15, desde = null, ate = null) {
       nome: lead.nome,
       assunto: lead.assunto,
       atendenteOuIA,
+      protocolo: lead.protocolo,
       inicio: lead.primeira_mensagem_em,
       termino: lead.ultima_mensagem_em,
       duracaoSegundos,
